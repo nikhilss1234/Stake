@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Stake Ledger">
+<meta name="theme-color" content="#1f6a85">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Stake Ledger</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: phone-first single column (max 540px); sticky top bar with account + balance; three views: Trade, Stats, Settings */
+:root{
+  --bg:#f2f5f4; --surface:#ffffff; --ink:#16201d; --muted:#5a6863; --line:#d5dcd9;
+  --accent:#1f6a85; --accent-soft:#e3eff3; --win:#2c7a4c; --win-soft:#e3f2e9; --loss:#b4392d; --loss-soft:#f8e6e3; --warn:#9a620f; --warn-soft:#f7eedd;
+  --f-display:"Archivo",system-ui,sans-serif; --f-body:"Source Sans 3",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#17201d; --ink:#e3eae7; --muted:#94a39d; --line:#2a3632;
+  --accent:#62b4d0; --accent-soft:#16303a; --win:#5cc48a; --win-soft:#17301f; --loss:#ee7c6e; --loss-soft:#3a1f1b; --warn:#e2a84d; --warn-soft:#352812; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#17201d; --ink:#e3eae7; --muted:#94a39d; --line:#2a3632;
+  --accent:#62b4d0; --accent-soft:#16303a; --win:#5cc48a; --win-soft:#17301f; --loss:#ee7c6e; --loss-soft:#3a1f1b; --warn:#e2a84d; --warn-soft:#352812; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--f-body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 40px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h2{font-size:18px}
+p{margin:0}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{font:700 20px var(--f-display)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface)}
+.seg button{border:0;background:transparent;border-radius:999px;padding:6px 14px;font:600 14px var(--f-body);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.seg.mode button[aria-pressed="true"][data-mode="real"]{background:var(--loss)}
+.balrow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bal{font:700 26px var(--f-mono);font-variant-numeric:tabular-nums}
+.chip{font:600 12px var(--f-body);padding:3px 9px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tabs button{padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font:600 15px var(--f-body);color:var(--muted);cursor:pointer}
+.tabs button[aria-pressed="true"]{color:var(--ink);border-color:var(--ink)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.k{font-size:13px;color:var(--muted)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stake{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.stake .v{font:700 44px/1 var(--f-mono);color:var(--accent);font-variant-numeric:tabular-nums}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.meta div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.meta b{font:600 17px var(--f-mono)}
+.pips{display:flex;gap:4px;flex-wrap:wrap}
+.pip{width:18px;height:8px;border-radius:2px;background:var(--line)}
+.pip.w{background:var(--win)} .pip.l{background:var(--loss)} .pip.t{background:var(--muted)}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big button{padding:22px 10px;font:700 22px var(--f-display);border-radius:12px;cursor:pointer;border:2px solid}
+.bw{background:var(--win-soft);border-color:var(--win)!important;color:var(--win)}
+.bl{background:var(--loss-soft);border-color:var(--loss)!important;color:var(--loss)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn{padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 15px var(--f-body);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.grow{flex:1}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.banner{padding:10px 12px;border-radius:8px;font-size:15px;border-left:3px solid var(--warn);background:var(--warn-soft)}
+.banner.bad{border-color:var(--loss);background:var(--loss-soft)}
+.banner.good{border-color:var(--win);background:var(--win-soft)}
+.banner:empty{display:none}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.grid2>div{background:var(--surface);padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.grid2 b{font:600 19px var(--f-mono);font-variant-numeric:tabular-nums}
+.good{color:var(--win)} .bad{color:var(--loss)} .warnc{color:var(--warn)}
+.meter{position:relative;height:14px;border-radius:7px;background:var(--bg);border:1px solid var(--line);overflow:hidden}
+.meter .range{position:absolute;top:0;bottom:0;background:var(--accent-soft)}
+.meter .be{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--loss)}
+.meter .dot{position:absolute;top:2px;width:8px;height:8px;border-radius:50%;background:var(--accent);transform:translateX(-4px)}
+.scale{display:flex;justify-content:space-between;font:12px var(--f-mono);color:var(--muted)}
+.pill{display:inline-block;font:600 13px var(--f-body);padding:4px 10px;border-radius:999px}
+.pill.good{background:var(--win-soft)} .pill.bad{background:var(--loss-soft)} .pill.warnc{background:var(--warn-soft)}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:right;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font:600 12px var(--f-body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+th:first-child,td:first-child{text-align:left}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--muted)}
+input[type=number]{font:600 17px var(--f-mono);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;width:100%}
+.small{font-size:13px;color:var(--muted)}
+.loading{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:20;font:600 16px var(--f-body);color:var(--muted)}
+</style>
+
+</head>
+<body>
+<div class="loading" id="loading">Loading your saved trades…</div>
+<div class="wrap">
+  <div class="top">
+    <div class="topline">
+      <span class="brand">Stake Ledger</span>
+      <div class="seg mode" role="group" aria-label="Account">
+        <button data-mode="demo" aria-pressed="true">Demo</button>
+        <button data-mode="real" aria-pressed="false">Real</button>
+      </div>
+    </div>
+    <div class="balrow">
+      <div><div class="k" id="balLabel">Demo balance</div><div class="bal" id="bal">$0.00</div></div>
+      <span class="chip" id="saveChip">Not saved yet</span>
+    </div>
+    <div class="tabs" role="group" aria-label="View">
+      <button data-view="trade" aria-pressed="true">Trade</button>
+      <button data-view="stats" aria-pressed="false">Stats</button>
+      <button data-view="settings" aria-pressed="false">Settings</button>
+    </div>
+  </div>
+
+  <!-- TRADE -->
+  <div id="v-trade" class="wrap" style="gap:14px">
+    <div class="banner" id="dayBanner"></div>
+    <div class="card" id="curCard">
+      <div class="stake">
+        <div><div class="k" id="stakeLabel">Next stake</div><div class="v" id="stake">–</div></div>
+        <button class="btn" id="copyBtn">Copy amount</button>
+      </div>
+      <input id="copyFallback" readonly hidden aria-label="Stake amount">
+      <div class="pips" id="pips"></div>
+      <div class="meta">
+        <div><span class="k">Wins needed</span><b id="mWins">–</b></div>
+        <div><span class="k">Trades left</span><b id="mLeft">–</b></div>
+        <div><span class="k">Session money</span><b id="mMoney">–</b></div>
+      </div>
+      <p class="small" id="ifLose"></p>
+    </div>
+    <div class="big">
+      <button class="bw" id="bWin">Win</button>
+      <button class="bl" id="bLoss">Loss</button>
+    </div>
+    <div class="row">
+      <button class="btn grow" id="bTie">Tie</button>
+      <button class="btn grow" id="bUndo">Undo last</button>
+      <button class="btn grow" id="bEnd">End session</button>
+    </div>
+    <button class="btn primary" id="bNew">Start session</button>
+    <div class="banner bad" id="lockBox" hidden>
+      <div id="lockText"></div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="bLockOk">Trade anyway</button><button class="btn" id="bLockNo">Stop for today</button></div>
+    </div>
+    <div class="card">
+      <h2>Recent sessions</h2>
+      <div class="tablebox"><table><thead><tr><th>Time</th><th>Trades</th><th>Risked</th><th>Result</th></tr></thead><tbody id="sessRows"></tbody></table></div>
+      <p class="small" id="noSess">No sessions yet. Tap Start session, place the stake on Pocket Option, then record the result here.</p>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div id="v-stats" class="wrap" style="gap:14px" hidden>
+    <div class="card">
+      <div class="k">Your win rate (ties not counted)</div>
+      <div class="balrow"><span class="bal" id="wr">–</span><span class="pill" id="verdict">–</span></div>
+      <div class="meter" aria-hidden="true"><div class="range" id="mRange"></div><div class="be" id="mBe"></div><div class="dot" id="mDot"></div></div>
+      <div class="scale"><span>40%</span><span id="beLbl">break-even</span><span>65%</span></div>
+      <p class="small" id="wrNote"></p>
+    </div>
+    <div class="grid2">
+      <div><span class="k">Trades</span><b id="sT">0</b></div>
+      <div><span class="k">Wins / losses / ties</span><b id="sWLT">0/0/0</b></div>
+      <div><span class="k">Sessions</span><b id="sS">0</b></div>
+      <div><span class="k">Sessions wiped out</span><b id="sWiped" class="bad">0</b></div>
+      <div><span class="k">Total profit / loss</span><b id="sPnl">$0.00</b></div>
+      <div><span class="k">Longest losing streak</span><b id="sStreak">0</b></div>
+      <div><span class="k">Today</span><b id="sToday">$0.00</b></div>
+      <div><span class="k">Change since start</span><b id="sChange">0%</b></div>
+    </div>
+    <div class="card">
+      <h2>Last 30 days</h2>
+      <div class="tablebox"><table><thead><tr><th>Day</th><th>Result</th></tr></thead><tbody id="dayRows"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="v-settings" class="wrap" style="gap:14px" hidden>
+    <div class="card">
+      <h2>Session rules</h2>
+      <div class="form">
+        <label for="iK">Wins needed<input id="iK" type="number" min="1" max="10" step="1"></label>
+        <label for="iN">Total trades<input id="iN" type="number" min="1" max="30" step="1"></label>
+        <label for="iPay">Payout (%)<input id="iPay" type="number" min="10" max="100" step="1"></label>
+        <label for="iRisk">Balance per session (%)<input id="iRisk" type="number" min="1" max="100" step="1"></label>
+      </div>
+      <div class="grid2">
+        <div><span class="k">First stake</span><b id="pFirst">–</b></div>
+        <div><span class="k">Profit per session</span><b id="pProfit" class="good">–</b></div>
+        <div><span class="k">Lost if session fails</span><b id="pLoss" class="bad">–</b></div>
+        <div><span class="k">Break-even win rate</span><b id="pBE">–</b></div>
+      </div>
+      <p class="small" id="pNote"></p>
+      <p class="small">Changes apply from the next session. If Pocket Option lowers the payout on your asset, update it here first.</p>
+    </div>
+    <div class="card">
+      <h2>Daily limits</h2>
+      <div class="form">
+        <label for="iGoal">Stop after winning ($)<input id="iGoal" type="number" min="0" step="1"></label>
+        <label for="iStop">Stop after losing ($)<input id="iStop" type="number" min="0" step="1"></label>
+      </div>
+      <p class="small">When either limit is reached, the app asks you to stop before starting another session. 0 turns a limit off.</p>
+    </div>
+    <div class="card">
+      <h2 id="accTitle">Demo account</h2>
+      <label for="iBal">Balance in Pocket Option ($)<input id="iBal" type="number" min="0" step="0.01"></label>
+      <div class="row"><button class="btn primary" id="bSetBal">Update balance</button><button class="btn" id="bReset">Reset this account</button></div>
+      <div class="banner bad" id="resetBox" hidden>Reset erases this account's trades and stats. <div class="row" style="margin-top:8px"><button class="btn" id="bResetYes">Erase</button><button class="btn" id="bResetNo">Cancel</button></div></div>
+      <p class="small">Use Update balance after a deposit or withdrawal, or if your Pocket Option balance differs from the app.</p>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <p class="small">Your trades are saved in this phone's browser only. Download a backup now and then, and use it to move your data to another phone or browser.</p>
+      <div class="row"><button class="btn" id="bExport">Download backup</button><label class="btn" for="iImport" style="flex-direction:row;color:var(--ink)">Restore backup<input id="iImport" type="file" accept=".json,application/json" hidden></label></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const money=v=>(v<-0.004?"−$":"$")+Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const signed=v=>(v>0.004?"+":"")+money(v);
+const MIN=1;
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+
+function model(o){const r=o-1,memo=new Map();
+  function F(n,k){if(k<=0)return 1;if(k>n)return 0;const key=n*64+k;if(memo.has(key))return memo.get(key);
+    const a=F(n-1,k-1),b=F(n-1,k);const v=b===0?Math.pow(o,n):o*a*b/(b+r*a);memo.set(key,v);return v}
+  function frac(n,k){if(k<=0||k>n)return 0;const a=F(n-1,k-1),b=F(n-1,k);return b===0?1:(b-a)/(b+r*a)}
+  return {F,frac,r}}
+function stakeOf(m,nl,kl,B){if(B<MIN)return 0;return Math.min(B,Math.max(MIN,m.frac(nl,kl)*B))}
+
+const newAcc=b=>({balance:b,start:b,stats:{t:0,w:0,l:0,ti:0,s:0,wiped:0,pnl:0,streak:0,maxStreak:0},sessions:[],trades:[],days:{}});
+let S={v:1,settings:{k:2,n:11,payout:92,risk:100,goal:5,stop:20},mode:"demo",acc:{demo:newAcc(350),real:newAcc(0)},cur:null};
+let undoSnap=null, view="trade", lockOverride=null;
+const A=()=>S.acc[S.mode];
+
+/* ---------- storage: account (db) → this browser → memory ---------- */
+let store={kind:"memory",save:async()=>{}};
+async function initStore(){
+  try{ const raw=localStorage.getItem("stake-ledger"); store={kind:"browser",save:async s=>localStorage.setItem("stake-ledger",JSON.stringify(s))}; return raw?JSON.parse(raw):null; }catch(e){}
+  return null;
+}
+let saving=false, pending=false, saveTimer;
+function save(){ clearTimeout(saveTimer); saveTimer=setTimeout(flush,350); }
+async function flush(){ if(saving){pending=true;return} saving=true; setChip("Saving…");
+  try{ await store.save(JSON.parse(JSON.stringify(S))); setChip(store.kind==="account"?"Saved on this device":store.kind==="browser"?"Saved on this device":"Not saved (this visit only)"); }
+  catch(e){ setChip(e&&e.code==="quota_exceeded"?"Storage full":"Not saved, will retry"); setTimeout(save,3000); }
+  saving=false; if(pending){pending=false;flush()} }
+function setChip(t){$("saveChip").textContent=t}
+
+/* ---------- trading logic ---------- */
+function cfgNow(){const s=S.settings;return{o:1+s.payout/100,k:s.k,n:s.n,risk:s.risk/100}}
+function snapshot(){undoSnap=JSON.stringify(S)}
+function dayPnl(){return A().days[today()]||0}
+function limitHit(){const s=S.settings,p=dayPnl();
+  if(s.stop>0&&p<=-s.stop)return `You've lost ${money(-p)} today, which reaches your ${money(s.stop)} daily loss limit.`;
+  if(s.goal>0&&p>=s.goal)return `You've made ${money(p)} today and reached your ${money(s.goal)} goal. Stopping now keeps it.`;
+  return null}
+function startSession(force){
+  const a=A(), c=cfgNow(), m=model(c.o), amt=a.balance*c.risk;
+  if(amt<MIN){flash("Your balance is too small for a $1 stake. Update it in Settings.");return}
+  const msg=limitHit();
+  if(msg&&!force&&lockOverride!==today()+S.mode){$("lockText").textContent=msg;$("lockBox").hidden=false;return}
+  $("lockBox").hidden=true; snapshot();
+  S.cur={mode:S.mode,cfg:c,S:amt,B:amt,nl:c.n,kl:c.k,log:[],t0:Date.now()};
+  render(); save();
+}
+function record(res){
+  const c=S.cur; if(!c)return; const m=model(c.cfg.o), st=stakeOf(m,c.nl,c.kl,c.B); if(!st){endSession();return}
+  snapshot(); const a=S.acc[c.mode], s=a.stats;
+  if(res==="W"){c.B+=st*m.r;c.kl--;c.nl--;s.w++;s.streak=0}
+  else if(res==="L"){c.B-=st;c.nl--;s.l++;s.streak++;s.maxStreak=Math.max(s.maxStreak,s.streak)}
+  else s.ti++;
+  s.t++; c.log.push(res);
+  a.trades.unshift([Date.now(),Math.round(st*100)/100,res]); if(a.trades.length>1000)a.trades.length=1000;
+  if(c.kl===0||c.nl<c.kl||c.B<MIN) endSession(true); else {render();save()}
+}
+function endSession(auto){
+  const c=S.cur; if(!c)return; if(!auto)snapshot();
+  const a=S.acc[c.mode], end=Math.max(0,c.B), pnl=end-c.S;
+  a.balance=Math.round((a.balance+pnl)*100)/100; a.stats.s++; a.stats.pnl+=pnl;
+  const wiped=c.kl>0&&end<MIN; if(wiped)a.stats.wiped++;
+  const d=today(); a.days[d]=(a.days[d]||0)+pnl;
+  const keys=Object.keys(a.days).sort(); while(keys.length>90)delete a.days[keys.shift()];
+  a.sessions.unshift({t:Date.now(),n:c.log.length,risk:c.S,pnl,done:c.kl===0,wiped}); if(a.sessions.length>300)a.sessions.length=300;
+  S.cur=null; render(); save();
+  if(wiped)flash(`Session wiped out: ${money(-pnl)} lost.`,"bad"); else if(c.kl===0)flash(`Session complete: ${signed(pnl)}`,"good"); else flash(`Session ended early: ${signed(pnl)}`);
+}
+function undo(){ if(!undoSnap)return; S=JSON.parse(undoSnap); undoSnap=null; render(); save(); flash("Last entry undone.") }
+let flashT; function flash(t,kind){const b=$("dayBanner");b.textContent=t;b.className="banner "+(kind||"");clearTimeout(flashT);flashT=setTimeout(renderDay,4000)}
+
+/* ---------- render ---------- */
+function renderDay(){ const msg=limitHit(), b=$("dayBanner"); const p=dayPnl();
+  if(msg){b.className="banner bad";b.textContent=msg} else {b.className="banner";b.textContent=S.settings.goal>0||S.settings.stop>0?`Today: ${signed(p)}`+(S.settings.goal>0?` · goal ${money(S.settings.goal)}`:"")+(S.settings.stop>0?` · loss limit ${money(S.settings.stop)}`:""):""} }
+function render(){
+  const a=A(), cur=S.cur&&S.cur.mode===S.mode?S.cur:null, other=S.cur&&!cur;
+  document.querySelectorAll("[data-mode]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.mode===S.mode));
+  document.querySelectorAll("[data-view]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.view===view));
+  ["trade","stats","settings"].forEach(v=>$("v-"+v).hidden=v!==view);
+  const live=cur?a.balance-cur.S+cur.B:a.balance;
+  $("balLabel").textContent=(S.mode==="demo"?"Demo":"Real")+" balance"+(cur?" (live)":"");
+  $("bal").textContent=money(live);
+
+  // trade view
+  if(cur){ const m=model(cur.cfg.o), st=stakeOf(m,cur.nl,cur.kl,cur.B), raised=m.frac(cur.nl,cur.kl)*cur.B<MIN&&st>0;
+    $("stakeLabel").textContent=raised?"Next stake (raised to $1 minimum)":"Next stake"; $("stake").textContent=money(st);
+    $("mWins").textContent=cur.kl; $("mLeft").textContent=cur.nl; $("mMoney").textContent=money(cur.B);
+    const after=cur.B-st; $("ifLose").textContent=cur.nl-1<cur.kl?"This trade must win or the session is lost.":`If this loses, session money drops to ${money(after)}.`;
+  } else { $("stakeLabel").textContent=other?"A session is open on your other account":"No session running"; $("stake").textContent="–";
+    ["mWins","mLeft","mMoney"].forEach(id=>$(id).textContent="–"); $("ifLose").textContent=""; }
+  const n=cur?cur.cfg.n:S.settings.n, log=cur?cur.log.filter(x=>x!=="T"):[];
+  $("pips").innerHTML=Array.from({length:n},(_,i)=>`<span class="pip ${log[i]==="W"?"w":log[i]==="L"?"l":""}"></span>`).join("");
+  ["bWin","bLoss","bTie","bEnd","copyBtn"].forEach(id=>$(id).disabled=!cur);
+  $("bNew").disabled=!!S.cur; $("bNew").textContent=S.cur?"Session in progress":"Start session";
+  $("bUndo").disabled=!undoSnap;
+  $("sessRows").innerHTML=a.sessions.slice(0,15).map(s=>{const d=new Date(s.t);return`<tr><td>${d.toLocaleDateString(undefined,{month:"short",day:"numeric"})} ${d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}</td><td>${s.n}</td><td>${money(s.risk)}</td><td class="${s.pnl>=0?"good":"bad"}">${s.wiped?"Wiped ":""}${signed(s.pnl)}</td></tr>`}).join("");
+  $("noSess").hidden=a.sessions.length>0;
+  renderDay();
+
+  // stats
+  const st=a.stats, dec=st.w+st.l, p=dec?st.w/dec:0, be=1/(1+S.settings.payout/100);
+  $("wr").textContent=dec?(p*100).toFixed(1)+"%":"–";
+  const me=dec?1.96*Math.sqrt(p*(1-p)/dec):0, lo=Math.max(0,p-me), hi=Math.min(1,p+me);
+  const X=v=>Math.min(100,Math.max(0,(v-0.40)/0.25*100));
+  $("mBe").style.left=X(be)+"%"; $("beLbl").textContent="break-even "+(be*100).toFixed(1)+"%";
+  $("mDot").hidden=!dec; $("mRange").hidden=!dec; if(dec){$("mDot").style.left=X(p)+"%";$("mRange").style.left=X(lo)+"%";$("mRange").style.width=(X(hi)-X(lo))+"%"}
+  const v=$("verdict");
+  if(dec<100){v.className="pill warnc";v.textContent=`Too early: ${dec} of 500 trades`}
+  else if(lo>be){v.className="pill good";v.textContent=dec>=500?"Above break-even":"Above break-even so far"}
+  else if(hi<be){v.className="pill bad";v.textContent="Below break-even"}
+  else {v.className="pill warnc";v.textContent="Not proven yet"}
+  $("wrNote").textContent=dec?`Based on ${dec} trades, your true win rate is likely between ${(lo*100).toFixed(1)}% and ${(hi*100).toFixed(1)}% (shaded). You need the whole range above the red line to be confident the method makes money.`:"Record trades to see your real win rate.";
+  $("sT").textContent=st.t; $("sWLT").textContent=`${st.w}/${st.l}/${st.ti}`; $("sS").textContent=st.s; $("sWiped").textContent=st.wiped;
+  const pe=$("sPnl"); pe.textContent=signed(st.pnl); pe.className=st.pnl>=0?"good":"bad";
+  $("sStreak").textContent=st.maxStreak; const td=$("sToday"); td.textContent=signed(dayPnl()); td.className=dayPnl()>=0?"good":"bad";
+  $("sChange").textContent=a.start>0?((a.balance/a.start-1)*100).toFixed(1)+"%":"–";
+  const days=Object.keys(a.days).sort().reverse().slice(0,30);
+  $("dayRows").innerHTML=days.length?days.map(d=>`<tr><td>${d}</td><td class="${a.days[d]>=0?"good":"bad"}">${signed(a.days[d])}</td></tr>`).join(""):`<tr><td colspan="2" class="small" style="font-family:var(--f-body)">No days recorded yet.</td></tr>`;
+
+  // settings
+  const s=S.settings; [["iK","k"],["iN","n"],["iPay","payout"],["iRisk","risk"],["iGoal","goal"],["iStop","stop"]].forEach(([id,key])=>{if(document.activeElement!==$(id))$(id).value=s[key]});
+  if(document.activeElement!==$("iBal"))$("iBal").value=a.balance;
+  $("accTitle").textContent=(S.mode==="demo"?"Demo":"Real")+" account";
+  const c=cfgNow(), m=model(c.o), amt=a.balance*c.risk, first=m.frac(c.n,c.k)*amt;
+  $("pFirst").textContent=money(Math.max(first,amt>=MIN?MIN:0)); $("pProfit").textContent="+"+money(amt*(m.F(c.n,c.k)-1)); $("pLoss").textContent=money(-amt); $("pBE").textContent=(be*100).toFixed(1)+"%";
+  $("pNote").textContent=first<MIN&&amt>0?`The exact first stake is ${money(first)}, below the $1 minimum, so it will be raised to $1. That makes sessions riskier than planned. The settings fit properly from about ${money(MIN/(m.frac(c.n,c.k)*c.risk))}.`:"";
+}
+
+/* ---------- events ---------- */
+document.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{view=b.dataset.view;render()});
+document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{S.mode=b.dataset.mode;render();save()});
+$("bNew").onclick=()=>startSession(false);
+$("bWin").onclick=()=>record("W"); $("bLoss").onclick=()=>record("L"); $("bTie").onclick=()=>record("T");
+$("bEnd").onclick=()=>endSession(false); $("bUndo").onclick=undo;
+$("bLockOk").onclick=()=>{lockOverride=today()+S.mode;startSession(true)};
+$("bLockNo").onclick=()=>{$("lockBox").hidden=true;flash("Good call. See you tomorrow.","good")};
+$("copyBtn").onclick=()=>{const t=$("stake").textContent.replace(/[^0-9.]/g,"");
+  const ok=()=>{$("copyBtn").textContent="Copied";setTimeout(()=>$("copyBtn").textContent="Copy amount",1500)};
+  const fb=()=>{const f=$("copyFallback");f.hidden=false;f.value=t;f.select();$("copyBtn").textContent="Select & copy"};
+  try{navigator.clipboard.writeText(t).then(ok,fb)}catch(e){fb()}};
+[["iK","k",1,10],["iN","n",1,30],["iPay","payout",10,100],["iRisk","risk",1,100],["iGoal","goal",0,1e9],["iStop","stop",0,1e9]].forEach(([id,key,lo,hi])=>
+  $(id).addEventListener("change",()=>{let v=+$(id).value;if(!isFinite(v))v=S.settings[key];v=Math.min(hi,Math.max(lo,v));if(key==="k"||key==="n")v=Math.round(v);
+    S.settings[key]=v; if(S.settings.k>S.settings.n)S.settings.k=S.settings.n; render(); save();}));
+$("bSetBal").onclick=()=>{const v=Math.max(0,+$("iBal").value||0);if(S.cur&&S.cur.mode===S.mode){flash("End the current session before changing the balance.");return}
+  const a=A(); snapshot(); if(a.stats.t===0)a.start=v; a.balance=v; render(); save(); flash("Balance updated.","good")};
+$("bReset").onclick=()=>$("resetBox").hidden=false; $("bResetNo").onclick=()=>$("resetBox").hidden=true;
+$("bResetYes").onclick=()=>{snapshot(); const b=A().balance; S.acc[S.mode]=newAcc(b); if(S.cur&&S.cur.mode===S.mode)S.cur=null; $("resetBox").hidden=true; render(); save(); flash("Account reset. Tap Undo last to bring it back.")};
+
+$("bExport").onclick=()=>{const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stake-ledger-backup-"+today()+".json";document.body.appendChild(a);a.click();a.remove();flash("Backup downloaded.","good")};
+$("iImport").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(d.v!==1||!d.acc)throw 0;snapshot();S=d;render();save();view="trade";render();flash("Backup restored.","good")}catch(err){flash("That file is not a Stake Ledger backup.","bad")}};r.readAsText(f);e.target.value=""};
+(async()=>{ render(); const saved=await initStore();
+  if(saved&&saved.v===1){S=saved}
+  $("loading").hidden=true; render();
+  setChip(saved?(store.kind==="account"?"Saved on this device":store.kind==="browser"?"Saved on this device":"This visit only"):(store.kind==="memory"?"Not saved (this visit only)":"Example balance: set yours in Settings"));
+})();
+</script>
+
+</body>
+</html>
